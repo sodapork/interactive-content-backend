@@ -165,16 +165,16 @@ app.post('/generate', async (req, res) => {
       messages: [
         {
           role: "system",
-          content: `You are an expert at generating interactive tools for blog content. Based on the following idea, generate a complete, self-contained HTML and JavaScript snippet for the tool, with a simple UI (inputs, buttons, etc.), minimal inline CSS, and all necessary logic. The tool should be directly related to the blog's subject and provide real value to readers. 
+          content: `You are an expert at generating robust, interactive web tools for blog content. Based on the following idea, generate a complete, self-contained HTML and JavaScript snippet for the tool, with a professional, accessible, and visually appealing UI (inputs, buttons, etc.), minimal inline CSS, and all necessary logic.
 
-Important styling guidelines:
-- Use proper spacing between elements (margin and padding)
-- Ensure consistent spacing throughout the tool
-- Add appropriate line height for text elements
-- Include proper spacing between form elements
-- Use margin-bottom for vertical spacing between sections
-- Add padding inside containers for better content breathing room
-- Ensure buttons and interactive elements have proper spacing from surrounding elements
+Requirements:
+- The tool must include input validation, user feedback for errors, and display results in a clear, user-friendly way.
+- Where appropriate, use visual elements (charts, progress bars, etc.) to enhance understanding.
+- Allow users to customize parameters and reset the tool.
+- Provide tooltips or inline help for any non-obvious controls.
+- Solve a real problem for readers and, where possible, summarize results or suggest next steps.
+- Ensure the UI is responsive and works well on both desktop and mobile devices.
+- Use proper spacing, consistent styling, and match the provided style summary as closely as possible.
 
 Style matching instructions:
 - Parse the provided style summary JSON and apply the styles to your generated tool
