@@ -179,9 +179,10 @@ Requirements:
 Embedding instructions:
 - Output only the code for the embeddable widget.
 - Do NOT include <!DOCTYPE html>, <html>, <head>, or <body> tags.
-- Place all CSS in a <style> tag at the top, and all JavaScript in a <script> tag at the bottom.
+- Output the <style> tag first, then the HTML markup, then the <script> tag at the end.
+- Never nest <style> or <script> tags inside each other.
+- Do NOT wrap the entire output in a <script> tag.
 - The code should be ready to paste into a WordPress HTML element or similar CMS widget.
-- Do not wrap the entire output in a <script> tag.
 - Do not include any markdown, triple backticks, or explanations—just the raw HTML, CSS, and JS.
 
 Style matching instructions:
