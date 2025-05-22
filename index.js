@@ -176,6 +176,14 @@ Requirements:
 - Ensure the UI is responsive and works well on both desktop and mobile devices.
 - Use proper spacing, consistent styling, and match the provided style summary as closely as possible.
 
+Embedding instructions:
+- Output only the code for the embeddable widget.
+- Do NOT include <!DOCTYPE html>, <html>, <head>, or <body> tags.
+- Place all CSS in a <style> tag at the top, and all JavaScript in a <script> tag at the bottom.
+- The code should be ready to paste into a WordPress HTML element or similar CMS widget.
+- Do not wrap the entire output in a <script> tag.
+- Do not include any markdown, triple backticks, or explanations—just the raw HTML, CSS, and JS.
+
 Style matching instructions:
 - Parse the provided style summary JSON and apply the styles to your generated tool
 - Match typography (font family, size, weight, line height)
@@ -184,7 +192,7 @@ Style matching instructions:
 - Match component styles (buttons, inputs, links) exactly
 - Ensure all interactive elements follow the site's design language
 
-Do not include markdown, triple backticks, or explanations—just the raw HTML+JS code.${styleSummary ? `\n\nStyle summary to match:\n${styleSummary}` : ''}`
+${styleSummary ? `Style summary to match:\n${styleSummary}` : ''}`
         },
         {
           role: "user",
