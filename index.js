@@ -19,18 +19,85 @@ function extractStyleSummary(dom) {
   // Try to get main content area
   const main = doc.querySelector('main') || doc.body;
   const style = dom.window.getComputedStyle(main);
-  const fontFamily = style.fontFamily || '';
-  const color = style.color || '';
-  const backgroundColor = style.backgroundColor || '';
-  // Try to find a button and get its style
+
+  // Typography
+  const typography = {
+    fontFamily: style.fontFamily || '',
+    fontSize: style.fontSize || '',
+    fontWeight: style.fontWeight || '',
+    lineHeight: style.lineHeight || '',
+    letterSpacing: style.letterSpacing || '',
+    textAlign: style.textAlign || '',
+    color: style.color || '',
+  };
+
+  // Colors and Background
+  const colors = {
+    backgroundColor: style.backgroundColor || '',
+    color: style.color || '',
+    borderColor: style.borderColor || '',
+  };
+
+  // Spacing
+  const spacing = {
+    padding: style.padding || '',
+    margin: style.margin || '',
+    gap: style.gap || '',
+  };
+
+  // Component Styles
+  const components = {};
+  
+  // Button styles
   const button = doc.querySelector('button');
-  let buttonStyle = '';
   if (button) {
     const btnStyle = dom.window.getComputedStyle(button);
-    buttonStyle = `background: ${btnStyle.backgroundColor}; color: ${btnStyle.color}; border-radius: ${btnStyle.borderRadius};`;
+    components.button = {
+      backgroundColor: btnStyle.backgroundColor || '',
+      color: btnStyle.color || '',
+      border: btnStyle.border || '',
+      borderRadius: btnStyle.borderRadius || '',
+      padding: btnStyle.padding || '',
+      fontSize: btnStyle.fontSize || '',
+      fontWeight: btnStyle.fontWeight || '',
+      boxShadow: btnStyle.boxShadow || '',
+    };
   }
-  // Build a summary string
-  return `Font: ${fontFamily}, Text color: ${color}, Background: ${backgroundColor}, Button style: ${buttonStyle}`;
+
+  // Input styles
+  const input = doc.querySelector('input');
+  if (input) {
+    const inputStyle = dom.window.getComputedStyle(input);
+    components.input = {
+      border: inputStyle.border || '',
+      borderRadius: inputStyle.borderRadius || '',
+      padding: inputStyle.padding || '',
+      fontSize: inputStyle.fontSize || '',
+      backgroundColor: inputStyle.backgroundColor || '',
+    };
+  }
+
+  // Link styles
+  const link = doc.querySelector('a');
+  if (link) {
+    const linkStyle = dom.window.getComputedStyle(link);
+    components.link = {
+      color: linkStyle.color || '',
+      textDecoration: linkStyle.textDecoration || '',
+      fontWeight: linkStyle.fontWeight || '',
+    };
+  }
+
+  // Build a detailed style summary
+  const styleSummary = {
+    typography,
+    colors,
+    spacing,
+    components,
+  };
+
+  // Convert to a more readable string format
+  return JSON.stringify(styleSummary, null, 2);
 }
 
 app.post('/extract', async (req, res) => {
@@ -103,7 +170,15 @@ Important styling guidelines:
 - Add padding inside containers for better content breathing room
 - Ensure buttons and interactive elements have proper spacing from surrounding elements
 
-Do not include markdown, triple backticks, or explanations—just the raw HTML+JS code.${styleSummary ? ` Match the following style as closely as possible: ${styleSummary}` : ''}`
+Style matching instructions:
+- Parse the provided style summary JSON and apply the styles to your generated tool
+- Match typography (font family, size, weight, line height)
+- Use the same color scheme (background, text, borders)
+- Apply consistent spacing patterns
+- Match component styles (buttons, inputs, links) exactly
+- Ensure all interactive elements follow the site's design language
+
+Do not include markdown, triple backticks, or explanations—just the raw HTML+JS code.${styleSummary ? `\n\nStyle summary to match:\n${styleSummary}` : ''}`
         },
         {
           role: "user",
