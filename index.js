@@ -92,7 +92,18 @@ app.post('/generate', async (req, res) => {
       messages: [
         {
           role: "system",
-          content: `You are an expert at generating interactive tools for blog content. Based on the following idea, generate a complete, self-contained HTML and JavaScript snippet for the tool, with a simple UI (inputs, buttons, etc.), minimal inline CSS, and all necessary logic. The tool should be directly related to the blog's subject and provide real value to readers. Do not include markdown, triple backticks, or explanations—just the raw HTML+JS code.${styleSummary ? ` Match the following style as closely as possible: ${styleSummary}` : ''}`
+          content: `You are an expert at generating interactive tools for blog content. Based on the following idea, generate a complete, self-contained HTML and JavaScript snippet for the tool, with a simple UI (inputs, buttons, etc.), minimal inline CSS, and all necessary logic. The tool should be directly related to the blog's subject and provide real value to readers. 
+
+Important styling guidelines:
+- Use proper spacing between elements (margin and padding)
+- Ensure consistent spacing throughout the tool
+- Add appropriate line height for text elements
+- Include proper spacing between form elements
+- Use margin-bottom for vertical spacing between sections
+- Add padding inside containers for better content breathing room
+- Ensure buttons and interactive elements have proper spacing from surrounding elements
+
+Do not include markdown, triple backticks, or explanations—just the raw HTML+JS code.${styleSummary ? ` Match the following style as closely as possible: ${styleSummary}` : ''}`
         },
         {
           role: "user",
