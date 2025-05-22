@@ -14,6 +14,25 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+function extractStyleSummary(dom) {
+  const doc = dom.window.document;
+  // Try to get main content area
+  const main = doc.querySelector('main') || doc.body;
+  const style = dom.window.getComputedStyle(main);
+  const fontFamily = style.fontFamily || '';
+  const color = style.color || '';
+  const backgroundColor = style.backgroundColor || '';
+  // Try to find a button and get its style
+  const button = doc.querySelector('button');
+  let buttonStyle = '';
+  if (button) {
+    const btnStyle = dom.window.getComputedStyle(button);
+    buttonStyle = `background: ${btnStyle.backgroundColor}; color: ${btnStyle.color}; border-radius: ${btnStyle.borderRadius};`;
+  }
+  // Build a summary string
+  return `Font: ${fontFamily}, Text color: ${color}, Background: ${backgroundColor}, Button style: ${buttonStyle}`;
+}
+
 app.post('/extract', async (req, res) => {
   const { url } = req.body;
   if (!url) return res.status(400).json({ error: 'No URL provided' });
@@ -23,10 +42,13 @@ app.post('/extract', async (req, res) => {
     const dom = new JSDOM(response.data, { url });
     const reader = new Readability(dom.window.document);
     const article = reader.parse();
+    // Extract style summary
+    const styleSummary = extractStyleSummary(dom);
     res.json({
       title: article.title,
       content: article.textContent,
-      html: article.content
+      html: article.content,
+      styleSummary
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to extract content', details: err.message });
@@ -35,7 +57,7 @@ app.post('/extract', async (req, res) => {
 
 // Generate 5 tool ideas
 app.post('/ideas', async (req, res) => {
-  const { content } = req.body;
+  const { content, styleSummary } = req.body;
   try {
     const completion = await openai.chat.completions.create({
       model: "gpt-4",
@@ -46,7 +68,7 @@ app.post('/ideas', async (req, res) => {
         },
         {
           role: "user",
-          content: `Suggest 5 interactive tool ideas for this blog post: ${content}`
+          content: `Suggest 5 interactive tool ideas for this blog post: ${content}${styleSummary ? `\n\nThe blog uses the following style: ${styleSummary}` : ''}`
         }
       ],
     });
@@ -63,14 +85,14 @@ app.post('/ideas', async (req, res) => {
 
 // Generate a tool for a selected idea
 app.post('/generate', async (req, res) => {
-  const { content, idea } = req.body;
+  const { content, idea, styleSummary } = req.body;
   try {
     const completion = await openai.chat.completions.create({
       model: "gpt-4",
       messages: [
         {
           role: "system",
-          content: `You are an expert at generating interactive tools for blog content. Based on the following idea, generate a complete, self-contained HTML and JavaScript snippet for the tool, with a simple UI (inputs, buttons, etc.), minimal inline CSS, and all necessary logic. The tool should be directly related to the blog's subject and provide real value to readers. Do not include markdown, triple backticks, or explanations—just the raw HTML+JS code.`
+          content: `You are an expert at generating interactive tools for blog content. Based on the following idea, generate a complete, self-contained HTML and JavaScript snippet for the tool, with a simple UI (inputs, buttons, etc.), minimal inline CSS, and all necessary logic. The tool should be directly related to the blog's subject and provide real value to readers. Do not include markdown, triple backticks, or explanations—just the raw HTML+JS code.${styleSummary ? ` Match the following style as closely as possible: ${styleSummary}` : ''}`
         },
         {
           role: "user",
