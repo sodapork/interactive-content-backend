@@ -22,7 +22,6 @@ app.use(express.json());
 
 function extractStyleSummary(dom) {
   const doc = dom.window.document;
-  // Try to get main content area
   const main = doc.querySelector('main') || doc.body;
   const style = dom.window.getComputedStyle(main);
 
@@ -32,33 +31,16 @@ function extractStyleSummary(dom) {
     fontSize: style.fontSize || '',
     fontWeight: style.fontWeight || '',
     lineHeight: style.lineHeight || '',
-    letterSpacing: style.letterSpacing || '',
-    textAlign: style.textAlign || '',
     color: style.color || '',
-  };
-
-  // Colors and Background
-  const colors = {
     backgroundColor: style.backgroundColor || '',
-    color: style.color || '',
-    borderColor: style.borderColor || '',
   };
 
-  // Spacing
-  const spacing = {
-    padding: style.padding || '',
-    margin: style.margin || '',
-    gap: style.gap || '',
-  };
-
-  // Component Styles
-  const components = {};
-  
   // Button styles
   const button = doc.querySelector('button');
+  let buttonStyle = {};
   if (button) {
     const btnStyle = dom.window.getComputedStyle(button);
-    components.button = {
+    buttonStyle = {
       backgroundColor: btnStyle.backgroundColor || '',
       color: btnStyle.color || '',
       border: btnStyle.border || '',
@@ -66,44 +48,28 @@ function extractStyleSummary(dom) {
       padding: btnStyle.padding || '',
       fontSize: btnStyle.fontSize || '',
       fontWeight: btnStyle.fontWeight || '',
-      boxShadow: btnStyle.boxShadow || '',
     };
   }
 
   // Input styles
   const input = doc.querySelector('input');
+  let inputStyle = {};
   if (input) {
-    const inputStyle = dom.window.getComputedStyle(input);
-    components.input = {
-      border: inputStyle.border || '',
-      borderRadius: inputStyle.borderRadius || '',
-      padding: inputStyle.padding || '',
-      fontSize: inputStyle.fontSize || '',
-      backgroundColor: inputStyle.backgroundColor || '',
+    const inputStyleObj = dom.window.getComputedStyle(input);
+    inputStyle = {
+      border: inputStyleObj.border || '',
+      borderRadius: inputStyleObj.borderRadius || '',
+      padding: inputStyleObj.padding || '',
+      fontSize: inputStyleObj.fontSize || '',
+      backgroundColor: inputStyleObj.backgroundColor || '',
     };
   }
 
-  // Link styles
-  const link = doc.querySelector('a');
-  if (link) {
-    const linkStyle = dom.window.getComputedStyle(link);
-    components.link = {
-      color: linkStyle.color || '',
-      textDecoration: linkStyle.textDecoration || '',
-      fontWeight: linkStyle.fontWeight || '',
-    };
-  }
-
-  // Build a detailed style summary
-  const styleSummary = {
+  return {
     typography,
-    colors,
-    spacing,
-    components,
+    button: buttonStyle,
+    input: inputStyle,
   };
-
-  // Convert to a more readable string format
-  return JSON.stringify(styleSummary, null, 2);
 }
 
 app.post('/extract', async (req, res) => {
@@ -111,23 +77,34 @@ app.post('/extract', async (req, res) => {
   if (!url) return res.status(400).json({ error: 'No URL provided' });
 
   try {
-    const response = await axios.get(url);
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+      },
+      timeout: 10000,
+    });
+
     const dom = new JSDOM(response.data, { url });
     const reader = new Readability(dom.window.document);
     const article = reader.parse();
-    // Extract style summary
-    const styleSummary = extractStyleSummary(dom);
+
     if (!article || !article.textContent || !article.textContent.trim()) {
       console.warn('Extraction failed or content empty for URL:', url);
       return res.status(500).json({ error: 'Failed to extract main content from the URL.' });
     }
+
+    const styleSummary = extractStyleSummary(dom);
+
     console.log('Extracted content for URL:', url, '\nTitle:', article.title, '\nContent:', article.textContent.slice(0, 300), '...');
     console.log('Extracted style summary:', styleSummary);
+
     res.json({
       title: article.title,
       content: article.textContent,
       html: article.content,
-      styleSummary
+      styleSummary,
     });
   } catch (err) {
     console.error('Error in /extract:', err.message, err.stack);
