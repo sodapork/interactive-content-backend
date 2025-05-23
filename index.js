@@ -114,8 +114,10 @@ app.post('/extract', async (req, res) => {
 
 // Generate 5 tool ideas
 app.post('/ideas', async (req, res) => {
-  const { content, styleSummary } = req.body;
+  const { content } = req.body;
   try {
+    // Log the content being sent to OpenAI
+    console.log('OpenAI /ideas prompt content:', content.slice(0, 500));
     const completion = await openai.chat.completions.create({
       model: "gpt-4",
       messages: [
@@ -125,7 +127,7 @@ app.post('/ideas', async (req, res) => {
         },
         {
           role: "user",
-          content: `Suggest 5 interactive tool ideas for this blog post: ${content}${styleSummary ? `\n\nThe blog uses the following style: ${styleSummary}` : ''}`
+          content: `Suggest 5 interactive tool ideas for this blog post: ${content}`
         }
       ],
     });
