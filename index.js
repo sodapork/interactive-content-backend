@@ -22,53 +22,39 @@ app.use(express.json());
 
 function extractStyleSummary(dom) {
   const doc = dom.window.document;
-  const main = doc.querySelector('main') || doc.body;
-  const style = dom.window.getComputedStyle(main);
 
-  // Typography
-  const typography = {
-    fontFamily: style.fontFamily || '',
-    fontSize: style.fontSize || '',
-    fontWeight: style.fontWeight || '',
-    lineHeight: style.lineHeight || '',
-    color: style.color || '',
-    backgroundColor: style.backgroundColor || '',
-  };
+  // Try to get main content container
+  const main = doc.querySelector('main, #main-content, .site-content, .post, body') || doc.body;
 
-  // Button styles
-  const button = doc.querySelector('button');
-  let buttonStyle = {};
-  if (button) {
-    const btnStyle = dom.window.getComputedStyle(button);
-    buttonStyle = {
-      backgroundColor: btnStyle.backgroundColor || '',
-      color: btnStyle.color || '',
-      border: btnStyle.border || '',
-      borderRadius: btnStyle.borderRadius || '',
-      padding: btnStyle.padding || '',
-      fontSize: btnStyle.fontSize || '',
-      fontWeight: btnStyle.fontWeight || '',
-    };
-  }
+  // Try to get a sample p, h1, button, input
+  const p = main.querySelector('p');
+  const h1 = main.querySelector('h1');
+  const button = main.querySelector('button');
+  const input = main.querySelector('input');
 
-  // Input styles
-  const input = doc.querySelector('input');
-  let inputStyle = {};
-  if (input) {
-    const inputStyleObj = dom.window.getComputedStyle(input);
-    inputStyle = {
-      border: inputStyleObj.border || '',
-      borderRadius: inputStyleObj.borderRadius || '',
-      padding: inputStyleObj.padding || '',
-      fontSize: inputStyleObj.fontSize || '',
-      backgroundColor: inputStyleObj.backgroundColor || '',
+  function getStyles(el) {
+    if (!el) return {};
+    const style = dom.window.getComputedStyle(el);
+    return {
+      fontFamily: style.fontFamily,
+      fontSize: style.fontSize,
+      fontWeight: style.fontWeight,
+      lineHeight: style.lineHeight,
+      color: style.color,
+      backgroundColor: style.backgroundColor,
+      border: style.border,
+      borderRadius: style.borderRadius,
+      padding: style.padding,
     };
   }
 
   return {
-    typography,
-    button: buttonStyle,
-    input: inputStyle,
+    body: getStyles(doc.body),
+    main: getStyles(main),
+    p: getStyles(p),
+    h1: getStyles(h1),
+    button: getStyles(button),
+    input: getStyles(input),
   };
 }
 
