@@ -220,7 +220,15 @@ app.post('/publish', async (req, res) => {
   }
 });
 
+// In-memory cache for /recent endpoint
+let recentCache = { tools: [], timestamp: 0 };
+const CACHE_DURATION = 60 * 1000; // 1 minute
+
 app.get('/recent', async (req, res) => {
+  const now = Date.now();
+  if (now - recentCache.timestamp < CACHE_DURATION) {
+    return res.json({ tools: recentCache.tools });
+  }
   const repo = 'sodapork/interactive-tools';
   const branch = 'gh-pages';
   const githubToken = process.env.GITHUB_TOKEN;
@@ -240,6 +248,7 @@ app.get('/recent', async (req, res) => {
         sha: file.sha
       }))
       .reverse(); // newest last (or sort by sha if you want newest first)
+    recentCache = { tools: files, timestamp: now };
     res.json({ tools: files });
   } catch (err) {
     console.error('Error in /recent:', err.response ? err.response.data : err.message, err.stack);
