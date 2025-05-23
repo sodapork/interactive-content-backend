@@ -285,6 +285,7 @@ app.get('/recent', async (req, res) => {
       .reverse(); // newest last (or sort by sha if you want newest first)
     res.json({ tools: files });
   } catch (err) {
+    console.error('Error in /recent:', err.response ? err.response.data : err.message, err.stack);
     res.status(500).json({ error: 'Failed to fetch recent tools', details: err.message });
   }
 });
