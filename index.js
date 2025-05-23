@@ -270,9 +270,13 @@ app.post('/publish', async (req, res) => {
 app.get('/recent', async (req, res) => {
   const repo = 'sodapork/interactive-tools';
   const branch = 'gh-pages';
+  const githubToken = process.env.GITHUB_TOKEN;
   try {
     const response = await axios.get(
-      `https://api.github.com/repos/${repo}/contents?ref=${branch}`
+      `https://api.github.com/repos/${repo}/contents?ref=${branch}`,
+      githubToken
+        ? { headers: { Authorization: `token ${githubToken}` } }
+        : undefined
     );
     // Filter for .html files only
     const files = response.data
