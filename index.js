@@ -262,6 +262,7 @@ app.post('/publish', async (req, res) => {
     const url = `https://sodapork.github.io/interactive-tools/${path}`;
     res.json({ url });
   } catch (err) {
+    console.error('Error in /publish:', err.response ? err.response.data : err.message, err.stack);
     res.status(500).json({ error: 'Failed to publish tool', details: err.message });
   }
 });
