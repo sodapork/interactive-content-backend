@@ -158,46 +158,27 @@ app.post('/ideas', async (req, res) => {
 
 // Generate a tool for a selected idea
 app.post('/generate', async (req, res) => {
-  const { content, idea, styleSummary } = req.body;
+  const { content, idea, styleSummary, userRequirements } = req.body;
   try {
     const completion = await openai.chat.completions.create({
       model: "gpt-4",
       messages: [
         {
           role: "system",
-          content: `You are an expert at generating robust, interactive web tools for blog content. Based on the following idea, generate a complete, self-contained HTML and JavaScript snippet for the tool, with a professional, accessible, and visually appealing UI (inputs, buttons, etc.), minimal inline CSS, and all necessary logic.
+          content: `You are an expert at creating highly engaging, complex, and interactive web tools for blog content. Given a blog post and user requirements, generate a sophisticated, ultra-engaging tool that is directly relevant to the post's topic and provides real value to readers.
 
 Requirements:
-- The tool must include input validation, user feedback for errors, and display results in a clear, user-friendly way.
-- Where appropriate, use visual elements (charts, progress bars, etc.) to enhance understanding.
-- Allow users to customize parameters and reset the tool.
-- Provide tooltips or inline help for any non-obvious controls.
-- Solve a real problem for readers and, where possible, summarize results or suggest next steps.
-- Ensure the UI is responsive and works well on both desktop and mobile devices.
-- Use proper spacing, consistent styling, and match the provided style summary as closely as possible.
-
-Embedding instructions:
-- Output only the code for the embeddable widget.
-- Do NOT include <!DOCTYPE html>, <html>, <head>, or <body> tags.
-- Output the <style> tag first, then the HTML markup, then the <script> tag at the end.
-- Never nest <style> or <script> tags inside each other.
-- Do NOT wrap the entire output in a <script> tag.
-- The code should be ready to paste into a WordPress HTML element or similar CMS widget.
-- Do not include any markdown, triple backticks, or explanations—just the raw HTML, CSS, and JS.
-
-Style matching instructions:
-- Parse the provided style summary JSON and apply the styles to your generated tool
-- Match typography (font family, size, weight, line height)
-- Use the same color scheme (background, text, borders)
-- Apply consistent spacing patterns
-- Match component styles (buttons, inputs, links) exactly
-- Ensure all interactive elements follow the site's design language
-
-${styleSummary ? `Style summary to match:\n${styleSummary}` : ''}`
+- The tool should be more than a simple calculator or checklist; it should include advanced interactivity, dynamic feedback, and multiple steps or features if appropriate.
+- Make the tool visually appealing, modern, and professional.
+- Ensure the tool is highly relevant to the provided blog content and tailored to the target audience.
+- Use creative elements: animations, progress bars, charts, branching logic, or gamification if it fits the context.
+- Match the style, color scheme, and typography of the source site as closely as possible (see provided style summary).
+- Output only the embeddable widget code (no html/head/body).
+- Do not include markdown, triple backticks, or explanations—just the raw HTML, CSS, and JS.`
         },
         {
           role: "user",
-          content: `Blog content: ${content}\n\nTool idea: ${idea}`
+          content: `Blog content: ${content}\n\nStyle summary: ${styleSummary || ''}\n\nUser requirements: ${userRequirements || idea || ''}`
         }
       ],
     });
