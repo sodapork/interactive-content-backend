@@ -226,6 +226,46 @@ app.post('/update', async (req, res) => {
   }
 });
 
+app.post('/publish', async (req, res) => {
+  const { filename, html } = req.body;
+  if (!filename || !html) return res.status(400).json({ error: 'Missing filename or html' });
+
+  const repo = 'sodapork/interactive-tools';
+  const branch = 'gh-pages';
+  const path = filename.endsWith('.html') ? filename : `${filename}.html`;
+  const githubToken = process.env.GITHUB_TOKEN;
+
+  // Get the current file SHA if it exists (for updates)
+  let sha = undefined;
+  try {
+    const getResp = await axios.get(
+      `https://api.github.com/repos/${repo}/contents/${path}?ref=${branch}`,
+      { headers: { Authorization: `token ${githubToken}` } }
+    );
+    sha = getResp.data.sha;
+  } catch (e) {
+    // File does not exist, that's fine
+  }
+
+  // Create or update the file
+  try {
+    await axios.put(
+      `https://api.github.com/repos/${repo}/contents/${path}`,
+      {
+        message: `Publish tool: ${path}`,
+        content: Buffer.from(html).toString('base64'),
+        branch,
+        ...(sha ? { sha } : {})
+      },
+      { headers: { Authorization: `token ${githubToken}` } }
+    );
+    const url = `https://sodapork.github.io/interactive-tools/${path}`;
+    res.json({ url });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to publish tool', details: err.message });
+  }
+});
+
 const PORT = 5001;
 app.listen(PORT, () => {
   console.log(`Content extraction server running on port ${PORT}`);
