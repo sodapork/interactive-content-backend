@@ -117,6 +117,12 @@ app.post('/extract', async (req, res) => {
     const article = reader.parse();
     // Extract style summary
     const styleSummary = extractStyleSummary(dom);
+    if (!article || !article.textContent || !article.textContent.trim()) {
+      console.warn('Extraction failed or content empty for URL:', url);
+      return res.status(500).json({ error: 'Failed to extract main content from the URL.' });
+    }
+    console.log('Extracted content for URL:', url, '\nTitle:', article.title, '\nContent:', article.textContent.slice(0, 300), '...');
+    console.log('Extracted style summary:', styleSummary);
     res.json({
       title: article.title,
       content: article.textContent,
@@ -124,6 +130,7 @@ app.post('/extract', async (req, res) => {
       styleSummary
     });
   } catch (err) {
+    console.error('Error in /extract:', err.message, err.stack);
     res.status(500).json({ error: 'Failed to extract content', details: err.message });
   }
 });
