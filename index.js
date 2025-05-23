@@ -267,6 +267,28 @@ app.post('/publish', async (req, res) => {
   }
 });
 
+app.get('/recent', async (req, res) => {
+  const repo = 'sodapork/interactive-tools';
+  const branch = 'gh-pages';
+  try {
+    const response = await axios.get(
+      `https://api.github.com/repos/${repo}/contents?ref=${branch}`
+    );
+    // Filter for .html files only
+    const files = response.data
+      .filter(file => file.name.endsWith('.html'))
+      .map(file => ({
+        name: file.name,
+        url: `https://sodapork.github.io/interactive-tools/${file.name}`,
+        sha: file.sha
+      }))
+      .reverse(); // newest last (or sort by sha if you want newest first)
+    res.json({ tools: files });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch recent tools', details: err.message });
+  }
+});
+
 const PORT = 5001;
 app.listen(PORT, () => {
   console.log(`Content extraction server running on port ${PORT}`);
