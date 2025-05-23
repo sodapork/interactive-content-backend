@@ -105,7 +105,7 @@ app.post('/ideas', async (req, res) => {
     // Log the content being sent to OpenAI
     console.log('OpenAI /ideas prompt content:', content.slice(0, 500));
     const completion = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4-1106-preview",
       messages: [
         {
           role: "system",
@@ -133,7 +133,7 @@ app.post('/generate', async (req, res) => {
   const { content, idea, styleSummary, userRequirements } = req.body;
   try {
     const completion = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4-1106-preview",
       messages: [
         {
           role: "system",
@@ -165,7 +165,7 @@ app.post('/update', async (req, res) => {
   const { content, currentTool, feedback } = req.body;
   try {
     const completion = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4-1106-preview",
       messages: [
         {
           role: "system",
