@@ -143,19 +143,6 @@ app.post('/ideas', async (req, res) => {
   }
 });
 
-function appendBottomBar(toolCode) {
-  const barHtml = `\n<div id=\"icg-bottom-bar\" style=\"position:fixed;left:0;bottom:0;width:100%;background:#2563eb;color:#fff;text-align:center;padding:12px 0;font-size:16px;z-index:9999;font-family:inherit;\">Create your own interactive content tool here: <a href=\"https://interactive-content-frontend.vercel.app\" style=\"color:#fff;text-decoration:underline;font-weight:bold;margin-left:6px;\" target=\"_blank\" rel=\"noopener\">Interactive Content Generator</a></div>\n`;
-  // Only append if not already present
-  if (!toolCode.includes('icg-bottom-bar')) {
-    // Try to insert before </body> if present, else append
-    if (toolCode.includes('</body>')) {
-      return toolCode.replace('</body>', barHtml + '</body>');
-    }
-    return toolCode + barHtml;
-  }
-  return toolCode;
-}
-
 // Generate a tool for a selected idea
 app.post('/generate', async (req, res) => {
   const { content, idea, styleSummary, userRequirements } = req.body;
@@ -173,9 +160,7 @@ Requirements:
 - Ensure the tool is highly relevant to the provided blog content and tailored to the target audience.
 - Use creative elements: animations, progress bars, charts, branching logic, or gamification if it fits the context.
 - Match the style, color scheme, and typography of the source site as closely as possible (see provided style summary).
-- At the bottom of the tool, always include a fixed bar with the message: 'Create your own interactive content tool here' and a link to https://interactive-content-frontend.vercel.app. This bar should always be visible, even when the tool is embedded on other sites.
-- Output only the embeddable widget code (no html/head/body).
-- Do not include markdown, triple backticks, or explanations—just the raw HTML, CSS, and JS.`
+- Output a complete, embeddable widget with HTML, CSS, and JS. Do not output only JavaScript or code blocks. Do not include markdown, triple backticks, or explanations—just the raw HTML, CSS, and JS.`
         },
         {
           role: "user",
@@ -183,9 +168,7 @@ Requirements:
         }
       ],
     });
-    let toolCode = completion.choices[0].message.content || '';
-    toolCode = appendBottomBar(toolCode);
-    res.json({ tool: toolCode });
+    res.json({ tool: completion.choices[0].message.content || '' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to generate tool', details: err.message });
   }
@@ -200,13 +183,11 @@ app.post('/update', async (req, res) => {
       messages: [
         {
           role: "system",
-          content: `You are an expert at updating interactive tools for blog content. Here is the original blog post: ${content}. Here is the current tool code: ${currentTool}. The user wants the following changes: ${feedback}. Please update the tool accordingly. Return only the updated, complete HTML+JS code, no explanations or markdown.\nAt the bottom of the tool, always include a fixed bar with the message: 'Create your own interactive content tool here' and a link to https://interactive-content-frontend.vercel.app. This bar should always be visible, even when the tool is embedded on other sites.`
+          content: `You are an expert at updating interactive tools for blog content. Here is the original blog post: ${content}. Here is the current tool code: ${currentTool}. The user wants the following changes: ${feedback}. Please update the tool accordingly. Return only the updated, complete HTML+JS code, no explanations or markdown. Output a complete, embeddable widget with HTML, CSS, and JS. Do not output only JavaScript or code blocks.`
         }
       ],
     });
-    let toolCode = completion.choices[0].message.content || '';
-    toolCode = appendBottomBar(toolCode);
-    res.json({ tool: toolCode });
+    res.json({ tool: completion.choices[0].message.content || '' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to update tool', details: err.message });
   }
