@@ -5,6 +5,7 @@ const axios = require('axios');
 const { JSDOM } = require('jsdom');
 const { Readability } = require('@mozilla/readability');
 const OpenAI = require('openai');
+const puppeteer = require('puppeteer');
 
 // Store your OpenAI API key here (or use dotenv for production)
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -20,47 +21,63 @@ app.use(cors({
 }));
 app.use(express.json());
 
-function extractStyleSummary(dom) {
-  const doc = dom.window.document;
-
-  // Try to get main content container
-  const main = doc.querySelector('main, #main-content, .site-content, .post, body') || doc.body;
-
-  // Try to get a sample p, h1, button, input
-  const p = main.querySelector('p');
-  const h1 = main.querySelector('h1');
-  const button = main.querySelector('button');
-  const input = main.querySelector('input');
-
-  function getStyles(el) {
-    if (!el) return {};
-    const style = dom.window.getComputedStyle(el);
+async function extractStylesWithPuppeteer(url) {
+  const browser = await puppeteer.launch({
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    headless: true,
+  });
+  const page = await browser.newPage();
+  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
+  const styles = await page.evaluate(() => {
+    function getStyles(selector) {
+      const el = document.querySelector(selector);
+      if (!el) return {};
+      const style = window.getComputedStyle(el);
+      return {
+        fontFamily: style.fontFamily,
+        fontSize: style.fontSize,
+        fontWeight: style.fontWeight,
+        lineHeight: style.lineHeight,
+        color: style.color,
+        backgroundColor: style.backgroundColor,
+        border: style.border,
+        borderRadius: style.borderRadius,
+        padding: style.padding,
+      };
+    }
     return {
-      fontFamily: style.fontFamily,
-      fontSize: style.fontSize,
-      fontWeight: style.fontWeight,
-      lineHeight: style.lineHeight,
-      color: style.color,
-      backgroundColor: style.backgroundColor,
-      border: style.border,
-      borderRadius: style.borderRadius,
-      padding: style.padding,
+      body: getStyles('body'),
+      main: getStyles('main, #main-content, .site-content, .post, body'),
+      p: getStyles('p'),
+      h1: getStyles('h1'),
+      button: getStyles('button'),
+      input: getStyles('input'),
     };
-  }
-
-  return {
-    body: getStyles(doc.body),
-    main: getStyles(main),
-    p: getStyles(p),
-    h1: getStyles(h1),
-    button: getStyles(button),
-    input: getStyles(input),
-  };
+  });
+  await browser.close();
+  return styles;
 }
 
 app.post('/extract', async (req, res) => {
-  const { url } = req.body;
+  const { url, userStyle } = req.body;
   if (!url) return res.status(400).json({ error: 'No URL provided' });
+
+  let styleSummary = {};
+  try {
+    styleSummary = await extractStylesWithPuppeteer(url);
+    // If all styles are empty, fallback to user input
+    const allEmpty = Object.values(styleSummary).every(
+      s => !s || Object.values(s).every(v => !v)
+    );
+    if (allEmpty && userStyle) {
+      styleSummary = userStyle;
+    }
+  } catch (err) {
+    // Puppeteer failed, fallback to user input if provided
+    if (userStyle) {
+      styleSummary = userStyle;
+    }
+  }
 
   try {
     const response = await axios.get(url, {
@@ -80,8 +97,6 @@ app.post('/extract', async (req, res) => {
       console.warn('Extraction failed or content empty for URL:', url);
       return res.status(500).json({ error: 'Failed to extract main content from the URL.' });
     }
-
-    const styleSummary = extractStyleSummary(dom);
 
     console.log('Extracted content for URL:', url, '\nTitle:', article.title, '\nContent:', article.textContent.slice(0, 300), '...');
     console.log('Extracted style summary:', styleSummary);
@@ -128,6 +143,19 @@ app.post('/ideas', async (req, res) => {
   }
 });
 
+function appendBottomBar(toolCode) {
+  const barHtml = `\n<div id=\"icg-bottom-bar\" style=\"position:fixed;left:0;bottom:0;width:100%;background:#2563eb;color:#fff;text-align:center;padding:12px 0;font-size:16px;z-index:9999;font-family:inherit;\">Create your own interactive content tool here: <a href=\"https://interactive-content-frontend.vercel.app\" style=\"color:#fff;text-decoration:underline;font-weight:bold;margin-left:6px;\" target=\"_blank\" rel=\"noopener\">Interactive Content Generator</a></div>\n`;
+  // Only append if not already present
+  if (!toolCode.includes('icg-bottom-bar')) {
+    // Try to insert before </body> if present, else append
+    if (toolCode.includes('</body>')) {
+      return toolCode.replace('</body>', barHtml + '</body>');
+    }
+    return toolCode + barHtml;
+  }
+  return toolCode;
+}
+
 // Generate a tool for a selected idea
 app.post('/generate', async (req, res) => {
   const { content, idea, styleSummary, userRequirements } = req.body;
@@ -145,6 +173,7 @@ Requirements:
 - Ensure the tool is highly relevant to the provided blog content and tailored to the target audience.
 - Use creative elements: animations, progress bars, charts, branching logic, or gamification if it fits the context.
 - Match the style, color scheme, and typography of the source site as closely as possible (see provided style summary).
+- At the bottom of the tool, always include a fixed bar with the message: 'Create your own interactive content tool here' and a link to https://interactive-content-frontend.vercel.app. This bar should always be visible, even when the tool is embedded on other sites.
 - Output only the embeddable widget code (no html/head/body).
 - Do not include markdown, triple backticks, or explanations—just the raw HTML, CSS, and JS.`
         },
@@ -154,7 +183,9 @@ Requirements:
         }
       ],
     });
-    res.json({ tool: completion.choices[0].message.content || '' });
+    let toolCode = completion.choices[0].message.content || '';
+    toolCode = appendBottomBar(toolCode);
+    res.json({ tool: toolCode });
   } catch (err) {
     res.status(500).json({ error: 'Failed to generate tool', details: err.message });
   }
@@ -169,11 +200,13 @@ app.post('/update', async (req, res) => {
       messages: [
         {
           role: "system",
-          content: `You are an expert at updating interactive tools for blog content. Here is the original blog post: ${content}. Here is the current tool code: ${currentTool}. The user wants the following changes: ${feedback}. Please update the tool accordingly. Return only the updated, complete HTML+JS code, no explanations or markdown.`
+          content: `You are an expert at updating interactive tools for blog content. Here is the original blog post: ${content}. Here is the current tool code: ${currentTool}. The user wants the following changes: ${feedback}. Please update the tool accordingly. Return only the updated, complete HTML+JS code, no explanations or markdown.\nAt the bottom of the tool, always include a fixed bar with the message: 'Create your own interactive content tool here' and a link to https://interactive-content-frontend.vercel.app. This bar should always be visible, even when the tool is embedded on other sites.`
         }
       ],
     });
-    res.json({ tool: completion.choices[0].message.content || '' });
+    let toolCode = completion.choices[0].message.content || '';
+    toolCode = appendBottomBar(toolCode);
+    res.json({ tool: toolCode });
   } catch (err) {
     res.status(500).json({ error: 'Failed to update tool', details: err.message });
   }
